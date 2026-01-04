@@ -255,48 +255,201 @@
             document.getElementById('file-input').accept = tool.accept;
         }
 
-        // カテゴリに応じてオプションを調整
-        if (tool.category === 'audio') {
-            document.getElementById('quality-group').innerHTML = `
-        <label class="form-label" for="quality">ビットレート</label>
-        <select class="form-select" id="quality">
-          <option value="320">320 kbps (高品質)</option>
-          <option value="256">256 kbps</option>
-          <option value="192" selected>192 kbps (標準)</option>
-          <option value="128">128 kbps</option>
-          <option value="96">96 kbps</option>
-        </select>
-      `;
-            document.getElementById('format-group').innerHTML = `
-        <label class="form-label" for="format">出力形式</label>
-        <select class="form-select" id="format">
-          <option value="mp3">MP3</option>
-          <option value="wav">WAV</option>
-          <option value="m4a">M4A</option>
-          <option value="ogg">OGG</option>
-        </select>
-      `;
-        } else if (tool.category === 'pdf') {
-            document.getElementById('options-panel').innerHTML = `
-        <h3 class="tool-page__options-title">PDFオプション</h3>
-        <div class="form-group">
-          <label class="form-label" for="pages">ページ範囲</label>
-          <input type="text" class="form-input" id="pages" placeholder="例: 1-5, 8, 10-12">
-        </div>
-      `;
-        } else if (tool.category === 'converter' && tool.accept.includes('image')) {
-            document.getElementById('options-panel').innerHTML = `
-        <h3 class="tool-page__options-title">画像オプション</h3>
-        <div class="form-group">
-          <label class="form-label" for="quality">画質</label>
-          <select class="form-select" id="quality">
-            <option value="100">最高品質 (100%)</option>
-            <option value="90" selected>高品質 (90%)</option>
-            <option value="80">標準 (80%)</option>
-            <option value="60">圧縮 (60%)</option>
-          </select>
-        </div>
-      `;
+        // ツールごとのオプション生成
+        const optionsPanel = document.getElementById('options-panel');
+        let optionsHtml = '';
+
+        switch (toolId) {
+            // --- ビデオツール ---
+            case 'video-trim':
+            case 'audio-trim':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">トリミング設定</h3>
+          <div style="display: flex; gap: 1rem;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="start-time">開始時間 (秒)</label>
+              <input type="number" class="form-input" id="start-time" value="0" min="0" step="0.1">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="end-time">終了時間 (秒)</label>
+              <input type="number" class="form-input" id="end-time" placeholder="終了" min="0" step="0.1">
+            </div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--color-gray-500);">※ 空欄の場合はファイルの最後まで</p>
+        `;
+                break;
+
+            case 'video-resize':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">リサイズ設定</h3>
+          <div style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="width">幅 (px)</label>
+              <input type="number" class="form-input" id="width" placeholder="例: 1920">
+            </div>
+            <div style="padding-bottom: 1rem;">×</div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="height">高さ (px)</label>
+              <input type="number" class="form-input" id="height" placeholder="例: 1080">
+            </div>
+          </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+              <input type="checkbox" checked> アスペクト比を維持する
+            </label>
+          </div>
+        `;
+                break;
+
+            case 'video-rotate':
+            case 'pdf-rotate':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">回転設定</h3>
+          <div class="form-group">
+            <label class="form-label">回転角度</label>
+            <div style="display: flex; gap: 1rem;">
+              <button class="btn btn--outline" style="flex: 1;">90° 右へ</button>
+              <button class="btn btn--outline" style="flex: 1;">90° 左へ</button>
+              <button class="btn btn--outline" style="flex: 1;">180°</button>
+            </div>
+          </div>
+        `;
+                break;
+
+            case 'audio-volume':
+            case 'video-volume':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">音量設定</h3>
+          <div class="form-group">
+            <label class="form-label" for="volume">音量レベル: <span id="volume-val">100</span>%</label>
+            <input type="range" id="volume" min="0" max="200" value="100" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--color-gray-500);">
+              <span>ミュート</span>
+              <span>100% (標準)</span>
+              <span>200% (2倍)</span>
+            </div>
+          </div>
+        `;
+                break;
+
+            case 'audio-speed':
+            case 'video-speed':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">再生速度設定</h3>
+          <div class="form-group">
+            <label class="form-label" for="speed">速度: <span id="speed-val">1.0</span>x</label>
+            <input type="range" id="speed" min="0.5" max="2.0" step="0.25" value="1.0" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--color-gray-500);">
+              <span>0.5x (遅く)</span>
+              <span>1.0x (標準)</span>
+              <span>2.0x (速く)</span>
+            </div>
+          </div>
+        `;
+                break;
+
+            case 'video-edit':
+            case 'convert-mp4':
+            case 'convert-mov':
+            case 'convert-webm':
+            case 'convert-avi':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">変換オプション</h3>
+          <div class="form-group">
+            <label class="form-label" for="format">出力形式</label>
+            <select class="form-select" id="format">
+              <option value="mp4" ${toolId.includes('mp4') ? 'selected' : ''}>MP4</option>
+              <option value="webm" ${toolId.includes('webm') ? 'selected' : ''}>WebM</option>
+              <option value="mov" ${toolId.includes('mov') ? 'selected' : ''}>MOV</option>
+              <option value="avi" ${toolId.includes('avi') ? 'selected' : ''}>AVI</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="resolution">解像度</label>
+            <select class="form-select" id="resolution">
+              <option value="original">元の動画と同じ</option>
+              <option value="1080">1080p (Full HD)</option>
+              <option value="720">720p (HD)</option>
+              <option value="480">480p (SD)</option>
+              <option value="360">360p</option>
+            </select>
+          </div>
+        `;
+                break;
+
+            case 'pdf-split':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">分割設定</h3>
+          <div class="form-group">
+            <label class="form-label" for="pages">抽出するページ範囲</label>
+            <input type="text" class="form-input" id="pages" placeholder="例: 1-5, 8, 10-12">
+            <p style="font-size: 0.8rem; color: var(--color-gray-500); margin-top: 0.5rem;">カンマ区切りで特定のページや範囲を指定できます。</p>
+          </div>
+        `;
+                break;
+
+            case 'convert-jpg':
+            case 'convert-png':
+            case 'convert-webp':
+                optionsHtml = `
+          <h3 class="tool-page__options-title">画像オプション</h3>
+          <div class="form-group">
+            <label class="form-label" for="quality">画質</label>
+            <select class="form-select" id="quality">
+              <option value="100">最高品質 (100%)</option>
+              <option value="90" selected>高品質 (90%)</option>
+              <option value="80">標準 (80%)</option>
+              <option value="60">圧縮 (60%)</option>
+            </select>
+          </div>
+          <div class="form-group">
+             <label class="form-label">サイズ変更（任意）</label>
+             <div style="display: flex; gap: 0.5rem;">
+               <input type="number" class="form-input" placeholder="幅" style="flex:1">
+               <input type="number" class="form-input" placeholder="高さ" style="flex:1">
+             </div>
+          </div>
+        `;
+                break;
+
+            default:
+                // デフォルト表示（特に指定がないツール）
+                if (tool.category === 'audio' || tool.category === 'converter' && tool.accept.includes('audio')) {
+                    optionsHtml = `
+            <h3 class="tool-page__options-title">変換オプション</h3>
+            <div class="form-group">
+                <label class="form-label" for="bitrate">ビットレート</label>
+                <select class="form-select" id="bitrate">
+                <option value="320">320 kbps (高品質)</option>
+                <option value="256">256 kbps</option>
+                <option value="192" selected>192 kbps (標準)</option>
+                <option value="128">128 kbps</option>
+                </select>
+            </div>
+            `;
+                } else {
+                    optionsHtml = `
+            <h3 class="tool-page__options-title">編集オプション</h3>
+            <p style="color: var(--color-gray-500);">このツールには特別な設定はありません。そのまま「編集を開始」を押してください。</p>
+            `;
+                }
+        }
+
+        // オプションパネルにHTMLを設定
+        optionsPanel.innerHTML = optionsHtml;
+
+        // スライダーの値表示更新ロジックなどを追加
+        const volumeSlider = document.getElementById('volume');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                document.getElementById('volume-val').textContent = e.target.value;
+            });
+        }
+        const speedSlider = document.getElementById('speed');
+        if (speedSlider) {
+            speedSlider.addEventListener('input', (e) => {
+                document.getElementById('speed-val').textContent = e.target.value;
+            });
         }
 
         // ファイル選択
