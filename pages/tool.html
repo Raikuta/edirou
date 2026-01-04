@@ -598,13 +598,17 @@
             document.getElementById('file-size').textContent = formatSize(file.size);
             fileInfo.classList.add('show');
             startBtn.disabled = false;
-            resultMessage.className = 'result-message';
             resultMessage.textContent = '';
+            resultMessage.className = 'result-message';
             downloadArea.classList.remove('show');
 
             // プレビュー生成
             showPreview(file);
         }
+
+        let videoDuration = 60; // デフォルト
+        let trimStart = 0;
+        let trimEnd = 60;
 
         function showPreview(file) {
             const previewArea = document.getElementById('preview-area');
@@ -622,11 +626,40 @@
                 previewElement.controls = true;
                 previewElement.src = objectUrl;
                 previewElement.className = 'preview-media';
+                previewElement.id = 'preview-video'; // ID付与
+
+                // メタデータ読み込み完了時に長さなどを設定
+                previewElement.addEventListener('loadedmetadata', () => {
+                    videoDuration = previewElement.duration;
+                    trimEnd = videoDuration;
+
+                    // スライダーがある場合は最大時間を更新
+                    const displayEnd = document.getElementById('display-end');
+                    if (displayEnd) {
+                        displayEnd.value = videoDuration.toFixed(1);
+                        updateDualSlider(); // 初期表示更新
+                    }
+                });
+
+                // 範囲再生の制御
+                previewElement.addEventListener('timeupdate', () => {
+                    if (toolId === 'video-trim') {
+                        if (previewElement.currentTime < trimStart) {
+                            previewElement.currentTime = trimStart;
+                        }
+                        if (previewElement.currentTime > trimEnd) {
+                            previewElement.currentTime = trimStart;
+                            previewElement.pause();
+                        }
+                    }
+                });
+
             } else if (fileType.startsWith('audio/')) {
                 previewElement = document.createElement('audio');
                 previewElement.controls = true;
                 previewElement.src = objectUrl;
                 previewElement.className = 'preview-media';
+                previewElement.id = 'preview-audio'; // ID付与
             } else if (fileType.startsWith('image/')) {
                 previewElement = document.createElement('img');
                 previewElement.src = objectUrl;
@@ -642,6 +675,51 @@
             if (previewElement) {
                 previewContent.appendChild(previewElement);
                 previewArea.classList.add('show');
+            }
+        }
+
+        // スライダー更新用の関数
+        window.updateDualSlider = function () {
+            const slider1 = document.getElementById('slider-1');
+            const slider2 = document.getElementById('slider-2');
+            const track = document.getElementById('slider-track');
+            const displayStart = document.getElementById('display-start');
+            const displayEnd = document.getElementById('display-end');
+
+            if (!slider1 || !slider2) return;
+
+            // 値の取得と整理
+            let val1 = parseInt(slider1.value);
+            let val2 = parseInt(slider2.value);
+            const minVal = Math.min(val1, val2);
+            const maxVal = Math.max(val1, val2);
+
+            // 範囲の表示更新
+            track.style.left = minVal + "%";
+            track.style.width = (maxVal - minVal) + "%";
+
+            // 時間の計算
+            const startSec = (minVal / 100 * videoDuration);
+            const endSec = (maxVal / 100 * videoDuration);
+
+            displayStart.value = startSec.toFixed(1);
+            displayEnd.value = endSec.toFixed(1);
+
+            // グローバル変数更新
+            trimStart = startSec;
+            trimEnd = endSec;
+
+            // プレビュー連動 (操作された側のスライダーに合わせてシーク)
+            const video = document.getElementById('preview-video');
+            if (video) {
+                // どちらのスライダーを動かしているか判定（簡易的: activeElementで判定）
+                if (document.activeElement === slider1) {
+                    video.currentTime = (val1 === minVal) ? startSec : endSec;
+                } else if (document.activeElement === slider2) {
+                    video.currentTime = (val2 === minVal) ? startSec : endSec;
+                }
+                // 一時停止中でなければ停止してフレーム確認させるなどのUXも考えられるが、
+                // ここではシークのみ行う
             }
         }
 
