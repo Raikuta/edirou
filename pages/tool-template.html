@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ファイル編集ツール - エディろう">
+    <title>ツール - エディろう</title>
+    <link rel="stylesheet" href="../index.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container header__inner">
+            <a href="../index.html" class="header__logo">
+                <svg class="header__logo-icon" viewBox="0 0 32 32">
+                    <rect x="4" y="4" width="24" height="24" rx="4" fill="currentColor" opacity="0.2" />
+                    <path d="M10 16L14 20L22 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                エディろう
+            </a>
+            <nav class="header__nav">
+                <ul class="header__nav-list">
+                    <li><a href="video-tools.html" class="header__nav-link">ビデオ</a></li>
+                    <li><a href="audio-tools.html" class="header__nav-link">オーディオ</a></li>
+                    <li><a href="pdf-tools.html" class="header__nav-link">PDF</a></li>
+                    <li><a href="converters.html" class="header__nav-link">コンバーター</a></li>
+                </ul>
+            </nav>
+            <button class="header__menu-btn" id="menu-btn" aria-label="メニュー"><svg viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18" stroke-linecap="round" />
+                </svg></button>
+        </div>
+    </header>
+    <nav class="mobile-menu" id="mobile-menu">
+        <ul class="mobile-menu__list">
+            <li><a href="video-tools.html" class="mobile-menu__link">ビデオツール</a></li>
+            <li><a href="audio-tools.html" class="mobile-menu__link">オーディオツール</a></li>
+            <li><a href="pdf-tools.html" class="mobile-menu__link">PDFツール</a></li>
+            <li><a href="converters.html" class="mobile-menu__link">コンバーター</a></li>
+        </ul>
+    </nav>
+    <main class="tool-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="../index.html" class="breadcrumb__link">ホーム</a>
+                <span class="breadcrumb__separator">›</span>
+                <a href="video-tools.html" class="breadcrumb__link">ビデオツール</a>
+                <span class="breadcrumb__separator">›</span>
+                <span class="breadcrumb__current">動画編集</span>
+            </nav>
+
+            <div class="tool-page__header">
+                <h1 class="tool-page__title">動画編集</h1>
+                <p class="tool-page__description">動画ファイルをブラウザ上で簡単に編集できます</p>
+            </div>
+
+            <div class="tool-page__content">
+                <!-- ドロップゾーン -->
+                <div class="drop-zone" id="drop-zone">
+                    <svg class="drop-zone__icon" viewBox="0 0 64 64" fill="currentColor">
+                        <path d="M32 4L20 16h8v20h8V16h8L32 4zM8 52v8h48v-8H8zm0-8h48V36H8v8z" />
+                    </svg>
+                    <p class="drop-zone__title">ファイルをドロップ</p>
+                    <p class="drop-zone__description">または、クリックしてファイルを選択</p>
+                    <input type="file" class="drop-zone__input" id="file-input" accept="video/*">
+                    <button class="btn btn--primary btn--lg" style="margin-top: 1rem;">ファイルを選択</button>
+                </div>
+
+                <!-- オプション -->
+                <div class="tool-page__options">
+                    <h3 class="tool-page__options-title">編集オプション</h3>
+                    <div class="form-group">
+                        <label class="form-label" for="format">出力形式</label>
+                        <select class="form-select" id="format">
+                            <option value="mp4">MP4</option>
+                            <option value="webm">WebM</option>
+                            <option value="mov">MOV</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="quality">品質</label>
+                        <select class="form-select" id="quality">
+                            <option value="high">高品質</option>
+                            <option value="medium" selected>標準</option>
+                            <option value="low">低品質（小サイズ）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- アクション -->
+                <div class="tool-page__actions">
+                    <button class="btn btn--secondary">リセット</button>
+                    <button class="btn btn--primary btn--lg">編集を開始</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__bottom">
+                <p>&copy; 2026 エディろう</p>
+            </div>
+        </div>
+    </footer>
+    <script src="../index.js"></script>
+</body>
+
+</html>
