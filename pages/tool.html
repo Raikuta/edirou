@@ -7,6 +7,11 @@
     <meta name="description" content="ファイル編集ツール - エディろう">
     <title>ツール - エディろう</title>
     <link rel="stylesheet" href="../index.css">
+    <!-- SharedArrayBuffer有効化 (クロスオリジン分離) -->
+    <script src="coi-serviceworker.js"></script>
+    <!-- FFmpeg.wasm -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
     <style>
         .file-info {
             display: none;
@@ -731,42 +736,171 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // Helper function to show processing status
+        function showProcessing(message) {
+            processing.classList.add('show');
+            resultMessage.className = 'result-message info'; // Or some other class for info
+            resultMessage.textContent = message;
+        }
+
+        // FFmpeg初期化
+        const { FFmpeg } = FFmpegWASM;
+        const { fetchFile } = FFmpegUTIL;
+        let ffmpeg = null;
+
+        async function loadFFmpeg() {
+            if (ffmpeg) return;
+
+            showProcessing('エンジンを起動中... (初回は時間がかかります)');
+            ffmpeg = new FFmpeg();
+
+            // ログ出力
+            ffmpeg.on('log', ({ message }) => {
+                console.log(message);
+                // 進行状況を表示したかったが、ログが多すぎるのでコンソールのみ
+            });
+
+            await ffmpeg.load({
+                coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
+            });
+        }
+
         // 編集開始
-        startBtn.addEventListener('click', () => {
+        startBtn.addEventListener('click', async () => {
             if (!selectedFile) {
                 resultMessage.className = 'result-message error';
                 resultMessage.textContent = 'ファイルを選択してください';
                 return;
             }
 
-            // 処理中表示
-            processing.classList.add('show');
-            startBtn.disabled = true;
-            resultMessage.className = 'result-message';
-            resultMessage.textContent = '';
+            try {
+                startBtn.disabled = true;
+                processing.classList.add('show');
+                resultMessage.className = 'result-message';
+                resultMessage.textContent = '';
+                downloadArea.classList.remove('show');
 
-            // 模擬処理（実際の処理はWebAssembly/FFmpegで実装）
-            setTimeout(() => {
+                // 1. FFmpegロード
+                await loadFFmpeg();
+
+                // 2. ファイル書き込み
+                showProcessing('ファイルを読み込んでいます...');
+                const inputName = 'input' + getExtension(selectedFile.name);
+                const outputName = 'output' + getExtension(selectedFile.name);
+
+                await ffmpeg.writeFile(inputName, await fetchFile(selectedFile));
+
+                // 3. コマンド構築
+                let args = [];
+
+                if (toolId === 'video-trim' || toolId === 'audio-trim') {
+                    showProcessing('トリミング処理中...');
+                    // -ss 開始時間 -i 入力 -to 終了時間 -c copy 出力
+                    // copyコーデックを使うと爆速だが、正確な位置で切れない場合がある。
+                    // 今回はプレビューと合わせるため、再エンコードは避けてcopyを試す。
+                    // 正確さを求めるなら再エンコードが必要だが時間がかかる。
+                    // ユーザー体験のため一旦 copy で実装し、問題あればエンコードに変える。
+                    // 安全のため -c copy ではなく再エンコードさせる（WebAssemblyだとcopyでも数秒かかるので、画質劣化しても確実な方を選ぶ手もあるが、まずはcopy）
+                    // ※ キーフレームの問題でcopyはずれることがある。
+                    // 安全策: 再エンコードなしで高速化: args = ['-ss', trimStart.toString(), '-i', inputName, '-to', trimEnd.toString(), '-c', 'copy', outputName];
+                    // 確実策: args = ['-i', inputName, '-ss', trimStart.toString(), '-to', trimEnd.toString(), outputName]; (デフォルトエンコード)
+
+                    // 今回は互換性と安全性を重視してデフォルトエンコード（遅いが確実）にするか、またはcopyにするか。
+                    // WebAssemblyは遅いので、まずは `-c copy` を試す。
+                    args = ['-ss', trimStart.toString(), '-i', inputName, '-to', trimEnd.toString(), '-c', 'copy', outputName];
+                }
+                else if (toolId === 'video-rotate') {
+                    // 回転はメタデータのみ変更か再エンコードが必要
+                    // -vf "transpose=1" (90度右) など
+                    showProcessing('回転処理中...');
+                    // TODO: 現在の回転角度を取得するロジックが必要だが、変数がスコープ外。
+                    // 一旦デモとして90度回転させる例：
+                    // args = ['-i', inputName, '-vf', 'transpose=1', outputName];
+                    // 実装簡略化のため、今回はトリミングのみ本格実装とし、他はコピー処理とする（またはエラー表示）
+                    if (confirm('回転機能の本格実装はまだです。ファイルのみコピーしますか？')) {
+                        args = ['-i', inputName, '-c', 'copy', outputName];
+                    } else {
+                        throw new Error('キャンセルされました');
+                    }
+                }
+                else {
+                    // その他のツールはまだ未対応のためコピー
+                    showProcessing('処理中...');
+                    args = ['-i', inputName, '-c', 'copy', outputName];
+                }
+
+                // 4. 実行
+                console.log('Running command:', args);
+                await ffmpeg.exec(args);
+
+                // 5. 出力読み込み
+                showProcessing('出力ファイルを生成中...');
+                const data = await ffmpeg.readFile(outputName);
+
+                // 6. ダウンロード準備
+                const blob = new Blob([data.buffer], { type: selectedFile.type });
+                const url = URL.createObjectURL(blob);
+
+                // ダウンロードボタン設定
+                const dlBtn = document.getElementById('download-btn');
+
+                // 既存のリスナーを削除できないので、新しいボタンに置換するか、
+                // グローバル変数にURLをセットして既存リスナーで使う。
+                // ここではURLを更新する方式をとる。
+                // ※ startBtnのスコープ内で定義された変数を使いたいが、構造上download-btnのリスナーは外にある。
+                // 解決策: dlBtnに data-url 属性を持たせる
+                dlBtn.dataset.downloadUrl = url;
+                dlBtn.dataset.fileName = 'edited_' + selectedFile.name;
+
                 processing.classList.remove('show');
                 resultMessage.className = 'result-message success';
                 resultMessage.textContent = '処理が完了しました！';
                 downloadArea.classList.add('show');
+
+                // 不要ファイル削除
+                await ffmpeg.deleteFile(inputName);
+                await ffmpeg.deleteFile(outputName);
+
+            } catch (e) {
+                console.error(e);
+                processing.classList.remove('show');
+                resultMessage.className = 'result-message error';
+                resultMessage.textContent = 'エラーが発生しました: ' + e.message;
+            } finally {
                 startBtn.disabled = false;
-            }, 2000);
+            }
         });
 
-        // ダウンロード
-        document.getElementById('download-btn').addEventListener('click', () => {
-            if (selectedFile) {
-                // 実際の処理済みファイルをダウンロード（デモでは元ファイル）
-                const url = URL.createObjectURL(selectedFile);
+        // 拡張子取得ヘルパー
+        function getExtension(filename) {
+            const parts = filename.split('.');
+            return parts.length > 1 ? '.' + parts.pop() : '';
+        }
+
+        // ダウンロード (修正)
+        document.getElementById('download-btn').addEventListener('click', (e) => {
+            const btn = e.target.closest('button'); // e.targetはアイコンかもしれないので
+            const url = btn.dataset.downloadUrl;
+            const name = btn.dataset.fileName;
+
+            if (url && name) {
                 const a = document.createElement('a');
                 a.href = url;
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                // URL.revokeObjectURL(url); // 再ダウンロードできなくなるので維持
+            } else if (selectedFile) {
+                // フォールバック（未処理の場合など）
+                const fallbackUrl = URL.createObjectURL(selectedFile);
+                const a = document.createElement('a');
+                a.href = fallbackUrl;
                 a.download = 'edited_' + selectedFile.name;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(fallbackUrl);
             }
         });
 
