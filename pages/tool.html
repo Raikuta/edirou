@@ -148,6 +148,33 @@
             margin: 0 auto 1rem;
             transition: transform 0.3s ease;
         }
+
+        /* プレビューエリア */
+        .preview-area {
+            display: none;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--color-base-bg);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            text-align: center;
+        }
+
+        .preview-area.show {
+            display: block;
+        }
+
+        .preview-media {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 0 auto;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        audio.preview-media {
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -215,6 +242,12 @@
                 <div class="file-info" id="file-info">
                     <p class="file-info__name" id="file-name"></p>
                     <p class="file-info__size" id="file-size"></p>
+                </div>
+
+                <!-- プレビューエリア (新規追加) -->
+                <div class="preview-area" id="preview-area">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--color-gray-600);">プレビュー</h3>
+                    <div id="preview-content"></div>
                 </div>
 
                 <!-- オプション -->
@@ -568,6 +601,48 @@
             resultMessage.className = 'result-message';
             resultMessage.textContent = '';
             downloadArea.classList.remove('show');
+
+            // プレビュー生成
+            showPreview(file);
+        }
+
+        function showPreview(file) {
+            const previewArea = document.getElementById('preview-area');
+            const previewContent = document.getElementById('preview-content');
+            previewContent.innerHTML = ''; // クリア
+            previewArea.classList.remove('show');
+
+            const fileType = file.type;
+            const objectUrl = URL.createObjectURL(file);
+
+            let previewElement = null;
+
+            if (fileType.startsWith('video/')) {
+                previewElement = document.createElement('video');
+                previewElement.controls = true;
+                previewElement.src = objectUrl;
+                previewElement.className = 'preview-media';
+            } else if (fileType.startsWith('audio/')) {
+                previewElement = document.createElement('audio');
+                previewElement.controls = true;
+                previewElement.src = objectUrl;
+                previewElement.className = 'preview-media';
+            } else if (fileType.startsWith('image/')) {
+                previewElement = document.createElement('img');
+                previewElement.src = objectUrl;
+                previewElement.className = 'preview-media';
+            } else if (fileType === 'application/pdf') {
+                previewElement = document.createElement('iframe');
+                previewElement.src = objectUrl;
+                previewElement.className = 'preview-media';
+                previewElement.style.width = '100%';
+                previewElement.style.height = '500px';
+            }
+
+            if (previewElement) {
+                previewContent.appendChild(previewElement);
+                previewArea.classList.add('show');
+            }
         }
 
         function formatSize(bytes) {
@@ -622,6 +697,8 @@
             selectedFile = null;
             fileInput.value = '';
             fileInfo.classList.remove('show');
+            document.getElementById('preview-area').classList.remove('show');
+            document.getElementById('preview-content').innerHTML = '';
             startBtn.disabled = true;
             processing.classList.remove('show');
             downloadArea.classList.remove('show');

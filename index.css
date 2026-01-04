@@ -9,30 +9,46 @@
    CSS Variables
    ================================================================= */
 :root {
-  /* Primary Colors - Green */
+  /* ライトモード (デフォルト) */
   --color-primary-50: #ecfdf5;
   --color-primary-100: #d1fae5;
   --color-primary-200: #a7f3d0;
+  /* Keep existing primary shades */
   --color-primary-300: #6ee7b7;
+  /* Keep existing primary shades */
   --color-primary-400: #34d399;
+  /* Keep existing primary shades */
   --color-primary-500: #10b981;
   --color-primary-600: #059669;
   --color-primary-700: #047857;
   --color-primary-800: #065f46;
+  /* Keep existing primary shades */
   --color-primary-900: #064e3b;
+  /* Keep existing primary shades */
 
   /* Neutral Colors */
   --color-white: #ffffff;
+  /* Keep existing white */
   --color-gray-50: #f9fafb;
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
   --color-gray-300: #d1d5db;
   --color-gray-400: #9ca3af;
+  /* Keep existing gray shades */
   --color-gray-500: #6b7280;
   --color-gray-600: #4b5563;
   --color-gray-700: #374151;
+  /* Keep existing gray shades */
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
+  /* Keep existing gray shades */
+
+  /* Base Colors for theming */
+  --color-base-bg: var(--color-gray-50);
+  --color-base-text: var(--color-gray-800);
+  --color-card-bg: var(--color-white);
+  --color-card-border: var(--color-gray-200);
+  --color-header-bg: rgba(255, 255, 255, 0.8);
 
   /* Semantic Colors */
   --color-success: #10b981;
@@ -91,7 +107,9 @@
 /* =================================================================
    Reset & Base
    ================================================================= */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -134,7 +152,8 @@ button {
   background: none;
 }
 
-ul, ol {
+ul,
+ol {
   list-style: none;
 }
 
@@ -438,7 +457,7 @@ ul, ol {
 
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--spacing-4);
 }
 
@@ -464,17 +483,20 @@ ul, ol {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-4);
-  background: var(--color-white);
-  border: 1px solid var(--color-gray-200);
+  padding: 1.5rem;
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
   border-radius: var(--radius-lg);
-  transition: all var(--transition-base);
+  transition: all 0.2s;
   text-align: center;
+  color: var(--color-base-text);
 }
 
 .tool-card:hover {
-  border-color: var(--color-primary-400);
+  border-color: var(--color-primary-500);
   box-shadow: var(--shadow-md);
+  background-color: var(--color-primary-50);
+  text-decoration: none;
 }
 
 .tool-card__icon {
@@ -509,18 +531,18 @@ ul, ol {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-12);
+  padding: 4rem 2rem;
   border: 2px dashed var(--color-gray-300);
   border-radius: var(--radius-xl);
-  background: var(--color-gray-50);
-  transition: all var(--transition-base);
+  background-color: var(--color-gray-50);
+  transition: all 0.3s;
   cursor: pointer;
   text-align: center;
 }
 
 .drop-zone:hover,
 .drop-zone.is-dragover {
-  border-color: var(--color-primary-400);
+  border-color: var(--color-primary-500);
   background: var(--color-primary-50);
 }
 
@@ -536,10 +558,10 @@ ul, ol {
 }
 
 .drop-zone__title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--color-gray-700);
-  margin-bottom: var(--spacing-2);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-base-text);
+  margin-bottom: 0.5rem;
 }
 
 .drop-zone__description {
