@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ファイル編集ツール - エディろう">
+    <title>ツール - エディろう</title>
+    <link rel="stylesheet" href="../index.css">
+    <style>
+        .file-info {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--color-primary-50);
+            border-radius: var(--radius-lg);
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info__name {
+            font-weight: 600;
+            color: var(--color-gray-800);
+        }
+
+        .file-info__size {
+            color: var(--color-gray-500);
+            font-size: var(--font-size-sm);
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .processing.show {
+            display: block;
+        }
+
+        .processing__spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--color-gray-200);
+            border-top-color: var(--color-primary-500);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .download-area {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            background: var(--color-primary-50);
+            border-radius: var(--radius-xl);
+            margin-top: 1.5rem;
+        }
+
+        .download-area.show {
+            display: block;
+        }
+
+        .result-message {
+            padding: 1rem;
+            border-radius: var(--radius-lg);
+            margin-top: 1rem;
+        }
+
+        .result-message.success {
+            background: var(--color-primary-100);
+            color: var(--color-primary-800);
+        }
+
+        .result-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container header__inner">
+            <a href="../index.html" class="header__logo">
+                <svg class="header__logo-icon" viewBox="0 0 32 32">
+                    <rect x="4" y="4" width="24" height="24" rx="4" fill="currentColor" opacity="0.2" />
+                    <path d="M10 16L14 20L22 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                エディろう
+            </a>
+            <nav class="header__nav">
+                <ul class="header__nav-list">
+                    <li><a href="video-tools.html" class="header__nav-link">ビデオ</a></li>
+                    <li><a href="audio-tools.html" class="header__nav-link">オーディオ</a></li>
+                    <li><a href="pdf-tools.html" class="header__nav-link">PDF</a></li>
+                    <li><a href="converters.html" class="header__nav-link">コンバーター</a></li>
+                </ul>
+            </nav>
+            <button class="header__menu-btn" id="menu-btn" aria-label="メニュー"><svg viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18" stroke-linecap="round" />
+                </svg></button>
+        </div>
+    </header>
+    <nav class="mobile-menu" id="mobile-menu">
+        <ul class="mobile-menu__list">
+            <li><a href="video-tools.html" class="mobile-menu__link">ビデオツール</a></li>
+            <li><a href="audio-tools.html" class="mobile-menu__link">オーディオツール</a></li>
+            <li><a href="pdf-tools.html" class="mobile-menu__link">PDFツール</a></li>
+            <li><a href="converters.html" class="mobile-menu__link">コンバーター</a></li>
+        </ul>
+    </nav>
+    <main class="tool-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="../index.html" class="breadcrumb__link">ホーム</a>
+                <span class="breadcrumb__separator">›</span>
+                <a href="#" class="breadcrumb__link" id="category-link">ツール</a>
+                <span class="breadcrumb__separator">›</span>
+                <span class="breadcrumb__current" id="tool-name">ツール</span>
+            </nav>
+
+            <div class="tool-page__header">
+                <h1 class="tool-page__title" id="page-title">ツール</h1>
+                <p class="tool-page__description" id="page-description">ファイルを編集できます</p>
+            </div>
+
+            <div class="tool-page__content">
+                <!-- ドロップゾーン -->
+                <div class="drop-zone" id="drop-zone">
+                    <svg class="drop-zone__icon" viewBox="0 0 64 64" fill="currentColor">
+                        <path d="M32 4L20 16h8v20h8V16h8L32 4zM8 52v8h48v-8H8zm0-8h48V36H8v8z" />
+                    </svg>
+                    <p class="drop-zone__title">ファイルをドロップ</p>
+                    <p class="drop-zone__description">または、クリックしてファイルを選択</p>
+                    <input type="file" class="drop-zone__input" id="file-input">
+                    <button class="btn btn--primary btn--lg" style="margin-top: 1rem;" id="select-btn">ファイルを選択</button>
+                </div>
+
+                <!-- ファイル情報 -->
+                <div class="file-info" id="file-info">
+                    <p class="file-info__name" id="file-name"></p>
+                    <p class="file-info__size" id="file-size"></p>
+                </div>
+
+                <!-- オプション -->
+                <div class="tool-page__options" id="options-panel">
+                    <h3 class="tool-page__options-title">編集オプション</h3>
+                    <div class="form-group" id="format-group">
+                        <label class="form-label" for="format">出力形式</label>
+                        <select class="form-select" id="format">
+                            <option value="mp4">MP4</option>
+                            <option value="webm">WebM</option>
+                            <option value="mov">MOV</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="quality-group">
+                        <label class="form-label" for="quality">解像度</label>
+                        <select class="form-select" id="quality">
+                            <option value="1080">1080p (Full HD)</option>
+                            <option value="720" selected>720p (HD)</option>
+                            <option value="480">480p (SD)</option>
+                            <option value="360">360p</option>
+                            <option value="240">240p</option>
+                            <option value="144">144p</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 処理中 -->
+                <div class="processing" id="processing">
+                    <div class="processing__spinner"></div>
+                    <p>処理中です...</p>
+                </div>
+
+                <!-- 結果メッセージ -->
+                <div class="result-message" id="result-message"></div>
+
+                <!-- ダウンロードエリア -->
+                <div class="download-area" id="download-area">
+                    <h3 style="margin-bottom: 1rem;">処理完了！</h3>
+                    <button class="btn btn--primary btn--lg" id="download-btn">ダウンロード</button>
+                </div>
+
+                <!-- アクション -->
+                <div class="tool-page__actions" id="action-buttons">
+                    <button class="btn btn--secondary" id="reset-btn">リセット</button>
+                    <button class="btn btn--primary btn--lg" id="start-btn" disabled>編集を開始</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__bottom">
+                <p>&copy; 2026 エディろう</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../index.js"></script>
+    <script>
+        // ツール定義
+        const tools = {
+            // ビデオツール
+            'video-edit': { title: '動画編集', desc: '動画ファイルをブラウザ上で簡単に編集', category: 'video', accept: 'video/*', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            'video-trim': { title: 'トリムビデオ', desc: '動画の不要な部分をカット', category: 'video', accept: 'video/*', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            'video-merge': { title: '動画を結合', desc: '複数の動画を1つに結合', category: 'video', accept: 'video/*', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            'video-rotate': { title: '動画を回転', desc: '動画を90度/180度回転', category: 'video', accept: 'video/*', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            'video-resize': { title: 'サイズ変更', desc: '動画の解像度を変更', category: 'video', accept: 'video/*', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            'video-loop': { title: 'ループ動画', desc: '動画をループ再生用に変換', category: 'video', accept: 'video/*', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            'screen-record': { title: '画面録画', desc: 'ブラウザで画面を録画', category: 'video', accept: '', categoryLink: 'video-tools.html', categoryName: 'ビデオツール' },
+            // オーディオツール
+            'audio-trim': { title: 'オーディオのトリム', desc: '音声の不要な部分をカット', category: 'audio', accept: 'audio/*', categoryLink: 'audio-tools.html', categoryName: 'オーディオツール' },
+            'audio-volume': { title: '音量変更', desc: '音声の音量を調整', category: 'audio', accept: 'audio/*', categoryLink: 'audio-tools.html', categoryName: 'オーディオツール' },
+            'audio-speed': { title: '再生速度変更', desc: '音声の再生速度を変更', category: 'audio', accept: 'audio/*', categoryLink: 'audio-tools.html', categoryName: 'オーディオツール' },
+            'audio-merge': { title: 'オーディオのマージ', desc: '複数の音声ファイルを結合', category: 'audio', accept: 'audio/*', categoryLink: 'audio-tools.html', categoryName: 'オーディオツール' },
+            // PDFツール
+            'pdf-split': { title: 'PDF 分割', desc: 'PDFを複数のファイルに分割', category: 'pdf', accept: '.pdf', categoryLink: 'pdf-tools.html', categoryName: 'PDFツール' },
+            'pdf-merge': { title: 'PDF 結合', desc: '複数のPDFを1つに結合', category: 'pdf', accept: '.pdf', categoryLink: 'pdf-tools.html', categoryName: 'PDFツール' },
+            'pdf-compress': { title: 'PDF 圧縮', desc: 'PDFのファイルサイズを削減', category: 'pdf', accept: '.pdf', categoryLink: 'pdf-tools.html', categoryName: 'PDFツール' },
+            'pdf-to-jpg': { title: 'PDF → JPG', desc: 'PDFを画像に変換', category: 'pdf', accept: '.pdf', categoryLink: 'pdf-tools.html', categoryName: 'PDFツール' },
+            // コンバーター
+            'convert-mp4': { title: 'MP4 変換', desc: '動画をMP4形式に変換', category: 'converter', accept: 'video/*', categoryLink: 'converters.html', categoryName: 'コンバーター' },
+            'convert-mp3': { title: 'MP3 変換', desc: '音声をMP3形式に変換', category: 'converter', accept: 'audio/*', categoryLink: 'converters.html', categoryName: 'コンバーター' },
+            'convert-jpg': { title: 'JPG 変換', desc: '画像をJPG形式に変換', category: 'converter', accept: 'image/*', categoryLink: 'converters.html', categoryName: 'コンバーター' },
+            'convert-png': { title: 'PNG 変換', desc: '画像をPNG形式に変換', category: 'converter', accept: 'image/*', categoryLink: 'converters.html', categoryName: 'コンバーター' },
+        };
+
+        // URLパラメータからツールIDを取得
+        const params = new URLSearchParams(window.location.search);
+        const toolId = params.get('tool') || 'video-edit';
+        const tool = tools[toolId] || tools['video-edit'];
+
+        // ページ情報を更新
+        document.getElementById('page-title').textContent = tool.title;
+        document.getElementById('page-description').textContent = tool.desc;
+        document.getElementById('tool-name').textContent = tool.title;
+        document.getElementById('category-link').textContent = tool.categoryName;
+        document.getElementById('category-link').href = tool.categoryLink;
+        document.title = tool.title + ' - エディろう';
+
+        // ファイル入力のaccept属性を設定
+        if (tool.accept) {
+            document.getElementById('file-input').accept = tool.accept;
+        }
+
+        // カテゴリに応じてオプションを調整
+        if (tool.category === 'audio') {
+            document.getElementById('quality-group').innerHTML = `
+        <label class="form-label" for="quality">ビットレート</label>
+        <select class="form-select" id="quality">
+          <option value="320">320 kbps (高品質)</option>
+          <option value="256">256 kbps</option>
+          <option value="192" selected>192 kbps (標準)</option>
+          <option value="128">128 kbps</option>
+          <option value="96">96 kbps</option>
+        </select>
+      `;
+            document.getElementById('format-group').innerHTML = `
+        <label class="form-label" for="format">出力形式</label>
+        <select class="form-select" id="format">
+          <option value="mp3">MP3</option>
+          <option value="wav">WAV</option>
+          <option value="m4a">M4A</option>
+          <option value="ogg">OGG</option>
+        </select>
+      `;
+        } else if (tool.category === 'pdf') {
+            document.getElementById('options-panel').innerHTML = `
+        <h3 class="tool-page__options-title">PDFオプション</h3>
+        <div class="form-group">
+          <label class="form-label" for="pages">ページ範囲</label>
+          <input type="text" class="form-input" id="pages" placeholder="例: 1-5, 8, 10-12">
+        </div>
+      `;
+        } else if (tool.category === 'converter' && tool.accept.includes('image')) {
+            document.getElementById('options-panel').innerHTML = `
+        <h3 class="tool-page__options-title">画像オプション</h3>
+        <div class="form-group">
+          <label class="form-label" for="quality">画質</label>
+          <select class="form-select" id="quality">
+            <option value="100">最高品質 (100%)</option>
+            <option value="90" selected>高品質 (90%)</option>
+            <option value="80">標準 (80%)</option>
+            <option value="60">圧縮 (60%)</option>
+          </select>
+        </div>
+      `;
+        }
+
+        // ファイル選択
+        let selectedFile = null;
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInfo = document.getElementById('file-info');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const processing = document.getElementById('processing');
+        const downloadArea = document.getElementById('download-area');
+        const resultMessage = document.getElementById('result-message');
+        const selectBtn = document.getElementById('select-btn');
+
+        selectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-size').textContent = formatSize(file.size);
+            fileInfo.classList.add('show');
+            startBtn.disabled = false;
+            resultMessage.className = 'result-message';
+            resultMessage.textContent = '';
+            downloadArea.classList.remove('show');
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 編集開始
+        startBtn.addEventListener('click', () => {
+            if (!selectedFile) {
+                resultMessage.className = 'result-message error';
+                resultMessage.textContent = 'ファイルを選択してください';
+                return;
+            }
+
+            // 処理中表示
+            processing.classList.add('show');
+            startBtn.disabled = true;
+            resultMessage.className = 'result-message';
+            resultMessage.textContent = '';
+
+            // 模擬処理（実際の処理はWebAssembly/FFmpegで実装）
+            setTimeout(() => {
+                processing.classList.remove('show');
+                resultMessage.className = 'result-message success';
+                resultMessage.textContent = '処理が完了しました！';
+                downloadArea.classList.add('show');
+                startBtn.disabled = false;
+            }, 2000);
+        });
+
+        // ダウンロード
+        document.getElementById('download-btn').addEventListener('click', () => {
+            if (selectedFile) {
+                // 実際の処理済みファイルをダウンロード（デモでは元ファイル）
+                const url = URL.createObjectURL(selectedFile);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'edited_' + selectedFile.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        // リセット
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            startBtn.disabled = true;
+            processing.classList.remove('show');
+            downloadArea.classList.remove('show');
+            resultMessage.className = 'result-message';
+            resultMessage.textContent = '';
+        });
+    </script>
+</body>
+
+</html>
